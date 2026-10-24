@@ -13,7 +13,7 @@ This runbook is for a development or training SAP client. Use fictitious people 
    | Employee A | `ZEXP_AUTH`: `ACTVT=01`, `ZEXP_ROLE=EMPLOYEE` |
    | Manager A | `ZEXP_AUTH`: `ACTVT=02`, `ZEXP_ROLE=MANAGER` |
    | Finance user | `ZEXP_AUTH`: `ACTVT=02`, `ZEXP_ROLE=FINANCE` |
-   | Policy maintainer | `ZEXP_AUTH`: `ACTVT=01,02`, `ZEXP_ROLE=POLICY` |
+   | Policy maintainer | `ZEXP_AUTH`: `ACTVT=01,02,03`, `ZEXP_ROLE=POLICY` |
    | Employee administrator | `ZEXP_AUTH`: `ACTVT=01,02`, `ZEXP_ROLE=ADMIN` |
    | Report user | `ZEXP_AUTH`: `ACTVT=03`, `ZEXP_ROLE=REPORT` |
 
@@ -40,12 +40,12 @@ This runbook is for a development or training SAP client. Use fictitious people 
 
 6. Create active policies in policy mode, using a start date no later than the expense dates used in the demo and a matching configured currency:
 
-   | Category | Example limit | Currency |
-   |---|---:|---|
-   | `TRAVEL` | 10000.00 | `INR` |
-   | `FOOD` | 2000.00 | `INR` |
-   | `ACCOM` | 8000.00 | `INR` |
-   | `LOCAL` | 1000.00 | `INR` |
+   | Policy ID | Category | Example limit | Currency |
+   |---|---|---:|---|
+   | `TRV-INR-01` | `TRAVEL` | 10000.00 | `INR` |
+   | `FOD-INR-01` | `FOOD` | 2000.00 | `INR` |
+   | `ACC-INR-01` | `ACCOM` | 8000.00 | `INR` |
+   | `LOC-INR-01` | `LOCAL` | 1000.00 | `INR` |
 
    These amounts are illustrative training data, not recommended company policy. Select dates that satisfy the system's date validation and the policy effective dates.
 

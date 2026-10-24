@@ -5,30 +5,30 @@ This guide maps the capstone requirements to the project objects. Full executabl
 ## Module 1 — Employee Management
 
 - **A. Objective:** Maintain employee identity and reporting relationships without permanent deletion.
-- **B. Requirements:** Create/update employee details; set active/inactive; bind each employee to a SAP user; optionally assign a manager.
-- **C. Database:** `ZEXP_EMP` (`EMP_ID` primary key; name, department, designation, email, active flag, SAP user, manager ID, audit fields).
-- **D. Object order:** Activate `ZEXP_EMP`, its domains/data elements, and unique secondary index on `SAP_USER`; create `ZEXP_AUTH`; create report.
-- **E. Code:** `ZEXP_EMP_MAINT` (`src/ZEXP_EMP_MAINT.abap`), executable report.
-- **F. Behavior:** Radio selection chooses insert or update. No delete path exists. Manager IDs must exist and cannot point to the same employee.
-- **G. Validation:** Required fields, active flag, existing manager, duplicate employee ID and SAP user are checked; database errors are shown.
-- **H. Security:** `ZEXP_AUTH` requires `ADMIN` with activity 01 for create and 02 for update. Direct table maintenance should be restricted.
-- **I. Test:** Create an employee, update their details, then deactivate them; unauthorized create/update must make no change.
-- **J. Dependencies:** None beyond common Dictionary and authorization objects.
-- **K. Limitations:** No bulk load, employee search UI, email syntax verification, or historical employee-status table.
+- **B. Requirements:** Create, display, update employee details; change active/inactive status; bind a SAP user; optionally assign a manager.
+- **C. Database:** `ZEXP_EMP` with `(MANDT, EMP_ID)` key, required identity fields, dates and user audit; unique secondary index on `SAP_USER`.
+- **D. Object order:** Activate reused employee ID, email, and active-status domains/data elements; create and activate table and index; configure `ZEXP_AUTH`; create report.
+- **E. Code:** `ZEXP_EMP_MAINT` (`src/ZEXP_EMP_MAINT.abap`), executable report. Full build and activation steps are in [MODULE1_EMPLOYEE.md](MODULE1_EMPLOYEE.md).
+- **F. Behavior:** Four actions: create, display one/all in SALV, update full details without changing status, and activate/deactivate. No delete path exists.
+- **G. Validation:** Required fields, basic email format, duplicate employee ID/SAP user, active existing manager, and no self-manager assignment are checked.
+- **H. Security:** `ZEXP_AUTH` requires `ADMIN` with activity 01 for create and 02 for update/status; `REPORT` activity 03 for display. Restrict direct table maintenance.
+- **I. Test:** Use the Module 1 test table and review checklist in `MODULE1_EMPLOYEE.md`.
+- **J. Dependencies:** Common Dictionary and authorization objects. `SAP_USER` and `MANAGER_ID` are retained for later claim/manager modules.
+- **K. Limitations:** SAP release unknown; no syntax check/activation/runtime test possible; email validation is basic; no historical change log.
 
 ## Module 2 — Expense Policy Management
 
-- **A. Objective:** Maintain supported categories and category-specific maximum limits.
-- **B. Requirements:** Create/update categories, activate/deactivate them, define effective-dated limits, reject overlaps in active policy periods.
-- **C. Database:** `ZEXP_CAT`; `ZEXP_POLICY` keyed by category and `VALID_FROM`.
-- **D. Object order:** Activate category and policy tables, foreign key, currency reference, and `ZEXP_AUTH`; create report.
-- **E. Code:** `ZEXP_POLICY_MAINT` (`src/ZEXP_POLICY_MAINT.abap`), executable report.
-- **F. Behavior:** The category/policy radio selection chooses which master is maintained; policy versions are selected by category and start date.
-- **G. Validation:** Category existence, positive maximum, configured SAP currency, sensible date range, active flag, duplicate version, and overlapping active periods are checked.
-- **H. Security:** `POLICY` role with activity 01/02. Do not grant generic table-update access to ordinary users.
-- **I. Test:** Create the four initial categories and a policy; try an overlapping active period and an unknown currency.
-- **J. Dependencies:** Common Dictionary/auth objects; claims and validation depend on these tables.
-- **K. Limitations:** One currency per policy, no currency conversion, no automatic policy seeding or mass maintenance.
+- **A. Objective:** Maintain supported categories and category/currency-specific limits.
+- **B. Requirements:** Create/display/update policies, activate/deactivate categories and policies, and reject overlapping active periods.
+- **C. Database:** `ZEXP_CAT`; `ZEXP_POLICY` keyed by `(MANDT, POLICY_ID)` with category, currency, positive limit, active flag, and validity dates.
+- **D. Object order:** Activate policy ID domain/data element, table, category foreign key, currency reference and lookup index; generate `EZEXPPOL`; configure auth; create report.
+- **E. Code:** `ZEXP_POLICY_MAINT` (`src/ZEXP_POLICY_MAINT.abap`), executable report. Full design and test details are in [MODULE2_POLICY.md](MODULE2_POLICY.md).
+- **F. Behavior:** Supports fixed categories `TRAVEL`, `FOOD`, `ACCOM`, and `LOCAL`; policy resolution must match category, currency, active status, and expense date exactly.
+- **G. Validation:** Positive limit, configured currency, consistent dates, active category, unique policy ID, and no overlap between active ranges for the same category/currency.
+- **H. Security:** `POLICY` role with activities 01/02/03. The report uses a coarse client-level policy lock; restrict direct table maintenance.
+- **I. Test:** Exercise valid/exceeded limits, inactive/missing policies, invalid dates, overlap rejection, display, and authorization per `MODULE2_POLICY.md`.
+- **J. Dependencies:** Shared Dictionary/auth objects and `ZEXP_CAT`; claim validation later depends on this table design.
+- **K. Limitations:** Currency conversion and historical change log are not implemented. Existing validator draft uses an older policy key and requires reconciliation.
 
 ## Module 3 — Expense Claim Submission
 

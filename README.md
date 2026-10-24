@@ -32,14 +32,18 @@ The reports implement employee maintenance, policy maintenance, claim submission
 
 The per-module objective, design, behavior, security, test, dependency, and limitation notes are in [docs/MODULE_GUIDE.md](docs/MODULE_GUIDE.md). The [docs/DEMO_RUNBOOK.md](docs/DEMO_RUNBOOK.md) provides sample training data and an end-to-end demonstration sequence.
 
+For the currently developed first module, see the detailed [Module 1 Employee Management guide](docs/MODULE1_EMPLOYEE.md), including table design, exact creation order, report usage, tests, and review checklist.
+
+The Module 2 policy design, policy-resolution rules, report usage, tests, and known integration issues are documented in the [Module 2 Expense Policy guide](docs/MODULE2_POLICY.md).
+
 Each `.abap` file is the complete source of one executable report. In SAP GUI, create a program with the exact report name in SE38, paste the matching source, run syntax check, activate, then assign transaction codes in SE93 if desired.
 
 ## ABAP object catalog
 
 | Exact name | Object type | Purpose | Prerequisites |
 |---|---|---|---|
-| `ZEXP_EMP_MAINT` | Executable report | Create/update employees; deactivate rather than delete | `ZEXP_EMP`, `ZEXP_AUTH` |
-| `ZEXP_POLICY_MAINT` | Executable report | Maintain categories and effective-dated limits | `ZEXP_CAT`, `ZEXP_POLICY`, `ZEXP_AUTH` |
+| `ZEXP_EMP_MAINT` | Executable report | Create, display, update, activate/deactivate employees; no permanent deletion | `ZEXP_EMP`, `ZEXP_AUTH`, SALV |
+| `ZEXP_POLICY_MAINT` | Executable report | Create/display/update policies and supported categories; reject overlapping active periods | `ZEXP_CAT`, `ZEXP_POLICY`, `EZEXPPOL`, `ZEXP_AUTH`, SALV |
 | `ZEXP_CLAIM_SUBMIT` | Executable report | Submit employee-owned claims and assign IDs | `ZEXP_EMP`, `ZEXP_CAT`, `ZEXP_CLAIM`, number range `ZEXP_CLM`, `ZEXP_AUTH` |
 | `ZEXP_CLAIM_VALIDATE` | Executable report | Validate submitted claims and write validation history | Employee/category/policy/claim/validation tables, lock object `EZEXPCLM`, `ZEXP_AUTH` |
 | `ZEXP_MANAGER_APPROVAL` | Executable report | Record one scoped approval/rejection per claim | Employee/claim/approval tables, lock object `EZEXPCLM`, `ZEXP_AUTH` |
@@ -48,7 +52,7 @@ Each `.abap` file is the complete source of one executable report. In SAP GUI, c
 
 ## Authorization setup
 
-Create authorization field `ZEXP_ROLE` in SU20, then authorization object `ZEXP_AUTH` in SU21 with fields `ACTVT` and `ZEXP_ROLE`. Maintain role/user assignments with PFCG. The reports also enforce employee-to-user and manager-to-employee relationships in application logic. See the dictionary/setup document for the expected role/activity combinations.
+Create authorization field `ZEXP_ROLE` in SU20, then authorization object `ZEXP_AUTH` in SU21 with fields `ACTVT` and `ZEXP_ROLE`. Maintain role/user assignments with PFCG. The reports also enforce employee-to-user and manager-to-employee relationships in application logic. See the dictionary/setup document for the expected role/activity combinations. Module 2 requires the `POLICY` role for activities 01, 02, and 03.
 
 ## Important limitations
 

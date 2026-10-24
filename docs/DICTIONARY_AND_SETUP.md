@@ -15,13 +15,14 @@ Create these shared objects in SE11 before the tables:
 | `ZEXP_D_EMP_ID` | CHAR 10 | Employee ID |
 | `ZEXP_D_CLAIM_ID` | CHAR 12 | Claim number |
 | `ZEXP_D_CATEGORY` | CHAR 10 | Category ID |
+| `ZEXP_D_POLICY_ID` | CHAR 12 | Stable policy identifier |
 | `ZEXP_D_STATUS` | CHAR 20 | `SUBMITTED`, `VALIDATION_FAILED`, `PENDING_APPROVAL`, `APPROVED`, `REJECTED`, `REIMBURSED`, `RECORDED` |
-| `ZEXP_D_ACTIVE` | CHAR 1 | `X` active, blank inactive |
+| `ZEXP_D_ACTIVE` | CHAR 1 | Fixed value `X` active; initial blank means inactive |
 | `ZEXP_D_EMAIL` | CHAR 241 | Email address |
 | `ZEXP_D_REFERENCE` | CHAR 30 | Reimbursement reference |
 | `ZEXP_D_AUTH_ROLE` | CHAR 10 | `ADMIN`, `EMPLOYEE`, `MANAGER`, `FINANCE`, `POLICY`, `REPORT` |
 
-Create same-named data elements `ZEXP_E_EMP_ID`, `ZEXP_E_CLAIM_ID`, `ZEXP_E_CATEGORY`, `ZEXP_E_STATUS`, `ZEXP_E_ACTIVE`, `ZEXP_E_EMAIL`, `ZEXP_E_REFERENCE`, and `ZEXP_E_AUTH_ROLE` referencing their respective domains. Additional short text fields may use built-in `CHAR` data elements. Use currency data element `WAERS` and date/time elements `DATS` and `TIMS`.
+Create same-named data elements `ZEXP_E_EMP_ID`, `ZEXP_E_CLAIM_ID`, `ZEXP_E_CATEGORY`, `ZEXP_E_POLICY_ID`, `ZEXP_E_STATUS`, `ZEXP_E_ACTIVE`, `ZEXP_E_EMAIL`, `ZEXP_E_REFERENCE`, and `ZEXP_E_AUTH_ROLE` referencing their respective domains. Additional short text fields may use built-in `CHAR` data elements. Use currency data element `WAERS` and date/time elements `DATS` and `TIMS`.
 
 ## Tables
 
@@ -56,21 +57,24 @@ Add a foreign key from `MANAGER_ID` to `ZEXP_EMP-EMP_ID` if the Dictionary setup
 | `CATEGORY_NAME` | | CHAR 40 | Display name |
 | `ACTIVE` | | `ZEXP_E_ACTIVE` | X or blank |
 
-Create the initial category records with `ZEXP_POLICY_MAINT`: `TRAVEL` / Travel, `FOOD` / Food, `ACCOM` / Accommodation, and `LOCAL` / Local transportation. Set each active.
+Create the initial category records with `ZEXP_POLICY_MAINT`: `TRAVEL` / Travel, `FOOD` / Food, `ACCOM` / Accommodation, and `LOCAL` / Local Transportation. Set each active.
 
 ### `ZEXP_POLICY` — effective-dated policy limits
 
 | Field | Key | Type | Notes |
 |---|---:|---|---|
 | `MANDT` | X | CLNT 3 | Client |
-| `CATEGORY_ID` | X | `ZEXP_E_CATEGORY` | Foreign key to `ZEXP_CAT` |
-| `VALID_FROM` | X | DATS | Inclusive start date |
+| `POLICY_ID` | X | `ZEXP_E_POLICY_ID` | Stable policy identifier |
+| `CATEGORY_ID` | | `ZEXP_E_CATEGORY` | Foreign key to `ZEXP_CAT` |
+| `VALID_FROM` | | DATS | Inclusive start date |
 | `VALID_TO` | | DATS | Inclusive end date |
 | `MAX_AMOUNT` | | CURR 15,2 | Reference `CURRENCY` |
 | `CURRENCY` | | WAERS | Policy currency |
 | `ACTIVE` | | `ZEXP_E_ACTIVE` | X or blank |
 | `CHANGED_BY` | | CHAR 12 | SAP username audit |
 | `CHANGED_ON` | | DATS | Audit |
+
+Primary key: `(MANDT, POLICY_ID)`. Add a non-unique secondary index on `(MANDT, CATEGORY_ID, CURRENCY, ACTIVE, VALID_FROM)` for policy lookup. Active validity periods must not overlap for the same category and currency; enforce this in the policy report while holding the policy lock.
 
 ### `ZEXP_CLAIM` — claim header
 
@@ -140,6 +144,8 @@ Add foreign keys from `ZEXP_CLAIM` to employee/category, and from validation, ap
 
 SAP lock-object names follow the generated `E...` naming convention, so `EZEXPCLM` is the technical exception to the `ZEXP_` prefix. The current report code serializes claim validation, approval, and reimbursement with these lock calls. Do not activate those reports before the lock object has been generated.
 
+For Module 2, create lock object `EZEXPPOL` on `ZEXP_POLICY` with `MANDT` as the only lock argument, so policy create/update operations are serialized within the client while overlap checks run. This is intentionally a coarse lock for a capstone; it does not coordinate direct table edits or other programs that do not use this lock. Activation generates `ENQUEUE_EZEXPPOL` and `DEQUEUE_EZEXPPOL`.
+
 ## Authorization
 
 In SU20 create authorization field `ZEXP_ROLE` based on data element `ZEXP_E_AUTH_ROLE`. In SU21 create authorization object `ZEXP_AUTH` with fields `ACTVT` and `ZEXP_ROLE`. Use the following application combinations in PFCG:
@@ -148,7 +154,7 @@ In SU20 create authorization field `ZEXP_ROLE` based on data element `ZEXP_E_AUT
 |---|---|---|
 | `EMPLOYEE` | `01` | Submit own claims |
 | `ADMIN` | `01`, `02` | Create/update employee master |
-| `POLICY` | `01`, `02` | Create/update categories and policy |
+| `POLICY` | `01`, `02`, `03` | Create/update/display categories and policies |
 | `MANAGER` | `02` | Validate/decide scoped claims |
 | `FINANCE` | `02` | Record reimbursement |
 | `REPORT` | `03` | View reports |
